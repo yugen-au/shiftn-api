@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  shiftn-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SHIFTN_PATH=C:\\app\\shiftn
+    volumes:
+      # Optional: mount config if you want to customize ShiftN.ini
+      # - ./config/ShiftN.ini:C:\\app\\shiftn\\ShiftN.ini:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "powershell", "-Command", "Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
