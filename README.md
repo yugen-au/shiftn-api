@@ -221,14 +221,7 @@ Customize `shiftn-app/ShiftN.ini` before building:
 
 ### Cost-Effective Linux Hosting
 
-This Wine-based version enables deployment on affordable Linux platforms:
-
-- **Railway**: $0-10/month
-- **Render**: $0-7/month  
-- **Fly.io**: $0-5/month
-- **DigitalOcean**: $5-10/month
-
-**Savings**: $50-100/month compared to Windows hosting
+This Wine-based version enables deployment on affordable Linux platforms such as Railway or Render.
 
 ### Railway Deployment
 
@@ -358,7 +351,7 @@ docker exec container-name wine --version
 
 ## Changelog
 
-### Version 2.0.0
+### Version 1.0.0
 - Linux/Wine compatibility
 - API key authentication
 - ImageMagick BMP to JPEG conversion
