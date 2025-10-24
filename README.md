@@ -347,7 +347,6 @@ docker exec container-name wine --version
 - **ShiftN functionality**: http://www.shiftn.de
 - **Wine compatibility**: https://www.winehq.org
 - **Docker issues**: Check Docker documentation
-- **API wrapper**: Open GitHub issue
 
 ## Changelog
 
