@@ -1,37 +1,60 @@
-# Use Windows Server Core as base image
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+# Use Node.js LTS on Debian (better Wine support than Alpine)
+FROM node:18-bookworm
 
-# Set working directory
+# Install Wine and dependencies for running Windows applications
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y \
+        wine \
+        wine32 \
+        wine64 \
+        xvfb \
+        imagemagick \
+        cabextract \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Wine environment variables
+ENV WINEPREFIX=/root/.wine
+ENV WINEARCH=win32
+ENV DISPLAY=:99
+
+# Create app directory
 WORKDIR /app
 
 # Copy ShiftN application files
-COPY shiftn-app/ /app/shiftn/
+COPY shiftn-app /app/shiftn
 
-# Copy API wrapper
-COPY api/ /app/api/
+# Copy API files
+COPY api/package*.json /app/api/
+WORKDIR /app/api
+RUN npm install --production
 
-# Install Node.js for the API wrapper
-# Using Chocolatey to install Node.js
-RUN powershell -Command \
-    Set-ExecutionPolicy Bypass -Scope Process -Force; \
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
-    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')); \
-    choco install -y nodejs-lts
+COPY api/server.js /app/api/
 
-# Set environment variables
-ENV SHIFTN_PATH=C:\\app\\shiftn
+# Create temp directories
+RUN mkdir -p /app/api/temp/uploads /app/api/temp/outputs
+
+# Initialize Wine (creates Windows environment)
+# Run in background X server for Wine GUI operations
+RUN Xvfb :99 -screen 0 1024x768x16 &
+RUN wine wineboot --init && sleep 5
+
+# Set environment for ShiftN
+ENV SHIFTN_PATH=/app/shiftn
+ENV PORT=3000
 ENV NODE_ENV=production
 
-# Install Node.js dependencies
-WORKDIR /app/api
-RUN npm install
-
-# Expose API port
+# Expose port
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD powershell -Command "try { Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the API server
-CMD ["node", "server.js"]
+# Start X server and Node.js API
+CMD rm -f /tmp/.X*-lock /tmp/.X11-unix/X* && \
+    Xvfb :99 -screen 0 1024x768x16 & \
+    sleep 2 && \
+    node server.js

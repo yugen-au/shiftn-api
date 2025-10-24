@@ -1,111 +1,104 @@
-# ShiftN Perspective Correction Microservice
+# ShiftN Perspective Correction Microservice (Wine/Linux)
 
-A REST API microservice that wraps the ShiftN perspective correction tool in a Docker container for easy deployment and integration.
+A REST API microservice that wraps the ShiftN perspective correction tool in a Linux Docker container using Wine for cross-platform compatibility.
 
 ## Overview
 
-ShiftN is a powerful tool for automatic correction of converging lines in architectural photography. This project containerizes ShiftN and exposes it as a simple REST API for use in microservice architectures.
+ShiftN is a powerful Windows tool for automatic correction of converging lines in architectural photography. This project runs ShiftN through Wine in a Linux container, enabling deployment on cost-effective Linux hosting platforms while maintaining full compatibility with the original Windows application.
 
 ## Features
 
-- Automatic perspective correction for images
-- REST API interface
-- Docker containerized for easy deployment
-- File upload support
-- Automatic cleanup of temporary files
-- Health check endpoint
-- Multiple correction modes
+- Automatic perspective correction for images using ShiftN
+- REST API interface with JSON responses
+- Linux Docker container with Wine compatibility layer
+- API key authentication for secure access
+- ImageMagick integration for BMP to JPEG conversion
+- Automatic file cleanup and process management
+- Health monitoring endpoints
+- Multiple correction modes (A1, A2, A3)
 
-## Prerequisites
+## Quick Start
 
-- Docker Desktop for Windows (with Windows containers enabled)
-- Windows host machine (required for Windows containers)
+### Prerequisites
+
+- Docker Desktop (Linux container mode)
+- ShiftN application files
+
+### 1. Environment Setup
+
+Copy the environment template and configure your API key:
+
+```bash
+cp .env.example .env
+# Edit .env and set your API_KEY
+```
+
+### 2. Build and Run
+
+```bash
+docker-compose build
+docker-compose up -d
+```
+
+### 3. Test the Service
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Process an image (with API key)
+curl -H "X-API-Key: your-api-key" \
+     -F "image=@test.jpg" \
+     http://localhost:3000/correct \
+     -o corrected.jpg
+```
 
 ## Project Structure
 
 ```
-shiftn-microservice/
-├── Dockerfile                 # Windows container definition
-├── docker-compose.yml         # Docker Compose configuration
-├── .dockerignore             # Files to exclude from Docker build
-├── README.md                 # This file
-├── api/                      # Node.js API wrapper
-│   ├── server.js            # Express server
-│   ├── package.json         # Node.js dependencies
+shiftn-microservice-wine/
+├── Dockerfile                 # Linux container with Wine
+├── docker-compose.yml         # Service configuration
+├── .env.example              # Environment template
+├── .env                      # Environment variables (gitignored)
+├── api/                      # Node.js API server
+│   ├── server.js            # Express server with Wine integration
+│   ├── package.json         # Dependencies
 │   └── temp/                # Temporary upload/output directory
-└── shiftn-app/              # ShiftN application files (to be copied)
+└── shiftn-app/              # ShiftN Windows application files
     ├── ShiftN.exe
     ├── ShiftN.ini
-    ├── *.dll                # Language and runtime DLLs
-    └── ...
-```
-
-## Setup Instructions
-
-### 1. Copy ShiftN Application Files
-
-Copy all files from your ShiftN installation to the `shiftn-app` directory:
-
-
-```powershell
-Copy-Item "C:\Program Files (x86)\ShiftN\*" -Destination ".\shiftn-app\" -Recurse
-```
-
-Required files:
-- ShiftN.exe
-- ShiftN.ini
-- shiftn_english.dll
-- shiftn_deutsch.dll
-- shiftn_francais.dll
-- shiftn_espanol.dll
-- mfc120.dll
-- mfcm120.dll
-- msvcp120.dll
-- msvcr120.dll
-
-### 2. Switch Docker to Windows Containers
-
-Right-click Docker Desktop system tray icon and select "Switch to Windows containers..."
-
-### 3. Build the Docker Image
-
-```powershell
-docker-compose build
-```
-
-Or build manually:
-
-```powershell
-docker build -t shiftn-microservice .
-```
-
-### 4. Run the Container
-
-Using Docker Compose:
-
-```powershell
-docker-compose up -d
-```
-
-Or run manually:
-
-```powershell
-docker run -d -p 3000:3000 --name shiftn-api shiftn-microservice
+    └── *.dll                # Runtime dependencies
 ```
 
 ## API Documentation
 
-### Base URL
+### Authentication
 
-```
-http://localhost:3000
-```
+All endpoints except `/health` and `/` require API key authentication.
+
+**Methods:**
+- Header: `X-API-Key: your-secret-key`
+- Query parameter: `?api_key=your-secret-key`
 
 ### Endpoints
 
+#### GET /health
+
+Health check endpoint (no authentication required).
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "shiftNPath": "/app/shiftn",
+  "shiftNExists": true
+}
+```
+
 #### GET /
 
-Get service information and available endpoints.
+Service information (no authentication required).
 
 **Response:**
 ```json
@@ -124,64 +117,48 @@ Get service information and available endpoints.
 }
 ```
 
-#### GET /health
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "shiftNPath": "C:\\app\\shiftn",
-  "shiftNExists": true
-}
-```
-
 #### POST /correct
 
-Correct perspective distortion in an image.
+Correct perspective distortion in an image (requires authentication).
 
 **Request:**
 - Method: `POST`
 - Content-Type: `multipart/form-data`
+- Headers: `X-API-Key: your-secret-key` (or use query parameter)
 - Body:
   - `image` (file, required): Image file to correct
-  - `option` (string, optional): Correction mode (A1, A2, or A3). Default: A2
+  - `option` (string, optional): Correction mode (A1, A2, A3). Default: A2
 
-**Supported Image Formats:**
-- JPEG (.jpg, .jpeg)
-- PNG (.png)
-- BMP (.bmp)
-- TIFF (.tif, .tiff)
+**Supported Formats:**
+- Input: JPEG, PNG, BMP, TIFF
+- Output: JPEG (converted from ShiftN's BMP output using ImageMagick)
 
 **Response:**
-- Content-Type: `image/bmp`
-- Body: Corrected image file (BMP format)
+- Content-Type: `image/jpeg`
+- Body: Corrected image file
 
-**Example using cURL:**
+## Usage Examples
 
-
+### cURL
 ```bash
-curl -X POST http://localhost:3000/correct \
-  -F "image=@building.jpg" \
-  -F "option=A2" \
-  -o corrected.bmp
+curl -H "X-API-Key: your-secret-key" \
+     -F "image=@building.jpg" \
+     -F "option=A2" \
+     http://localhost:3000/correct \
+     -o corrected.jpg
 ```
 
-**Example using PowerShell:**
-
+### PowerShell
 ```powershell
-$uri = "http://localhost:3000/correct"
-$filePath = "C:\path\to\image.jpg"
+$headers = @{ "X-API-Key" = "your-secret-key" }
 $form = @{
-    image = Get-Item -Path $filePath
+    image = Get-Item -Path "building.jpg"
     option = "A2"
 }
-Invoke-RestMethod -Uri $uri -Method Post -Form $form -OutFile "corrected.bmp"
+Invoke-RestMethod -Uri http://localhost:3000/correct -Method Post -Headers $headers -Form $form -OutFile "corrected.jpg"
 ```
 
-**Example using JavaScript (fetch):**
-
+### JavaScript (fetch)
 ```javascript
 const formData = new FormData();
 formData.append('image', fileInput.files[0]);
@@ -189,136 +166,202 @@ formData.append('option', 'A2');
 
 const response = await fetch('http://localhost:3000/correct', {
     method: 'POST',
+    headers: {
+        'X-API-Key': 'your-secret-key'
+    },
     body: formData
 });
 
 const blob = await response.blob();
-const url = URL.createObjectURL(blob);
 ```
 
-**Example using Python:**
-
+### Python
 ```python
 import requests
 
-url = 'http://localhost:3000/correct'
+headers = {'X-API-Key': 'your-secret-key'}
 files = {'image': open('building.jpg', 'rb')}
 data = {'option': 'A2'}
 
-response = requests.post(url, files=files, data=data)
+response = requests.post('http://localhost:3000/correct', 
+                        headers=headers, files=files, data=data)
 
-with open('corrected.bmp', 'wb') as f:
+with open('corrected.jpg', 'wb') as f:
     f.write(response.content)
 ```
 
-## Correction Modes
-
-- **A1**: Automatic correction mode 1
-- **A2**: Automatic correction mode 2 (default, recommended)
-- **A3**: Automatic correction mode 3
-
-The modes correspond to different algorithms in ShiftN. A2 is generally the most reliable.
-
 ## Configuration
 
+### Environment Variables
 
-ShiftN's processing parameters are controlled by the `ShiftN.ini` file. You can customize this file in the `shiftn-app` directory before building the Docker image.
+Configure in `.env` file:
 
-Key parameters in `ShiftN.ini`:
-- JPEG quality (default: 100)
-- Minimum line length
-- Line contrast settings
-- Sharpening parameters
-- Focal length
-- And many more...
+```bash
+# API Configuration
+API_KEY=your-secret-api-key-here
 
-## Environment Variables
+# Server Configuration
+PORT=3000
+NODE_ENV=production
 
-- `PORT`: API server port (default: 3000)
-- `NODE_ENV`: Node environment (default: production)
-- `SHIFTN_PATH`: Path to ShiftN executable directory (default: C:\app\shiftn)
+# ShiftN Configuration
+SHIFTN_PATH=/app/shiftn
+```
+
+### ShiftN Parameters
+
+Customize `shiftn-app/ShiftN.ini` before building:
+
+- JPEG quality settings
+- Line detection parameters
+- Correction algorithms
+- Processing timeouts
+
+## Deployment
+
+### Cost-Effective Linux Hosting
+
+This Wine-based version enables deployment on affordable Linux platforms:
+
+- **Railway**: $0-10/month
+- **Render**: $0-7/month  
+- **Fly.io**: $0-5/month
+- **DigitalOcean**: $5-10/month
+
+**Savings**: $50-100/month compared to Windows hosting
+
+### Railway Deployment
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Deploy
+railway login
+railway up
+```
+
+### Render Deployment
+
+1. Push repository to GitHub
+2. Connect to Render
+3. Deploy as Docker service
+4. Set environment variables in dashboard
+
+## Performance
+
+- **Processing time**: 20-30 seconds per image
+- **File size limit**: 50MB
+- **Concurrent requests**: Supported with automatic process management
+- **Memory usage**: ~200MB base + ~100MB per active job
+- **Cleanup**: Automatic removal of temporary files after processing
+
+## Technical Details
+
+### Wine Compatibility
+
+- Runs ShiftN.exe through Wine compatibility layer
+- Virtual X server (Xvfb) for GUI-less operation
+- Automatic process cleanup prevents hanging Wine processes
+- Tested with ShiftN's MFC framework dependencies
+
+### Process Management
+
+- 5-minute timeout for image processing
+- Polling every 3 seconds for completion
+- Immediate process termination after output detection
+- X server lock file cleanup on container restart
+
+### File Conversion
+
+- ShiftN outputs BMP format
+- ImageMagick converts BMP to JPEG (90% quality)
+- Automatic cleanup of intermediate files
+- Error handling for conversion failures
 
 ## Troubleshooting
 
-### Container fails to start
+### Container Issues
 
-1. Ensure Docker is in Windows container mode
-2. Check Docker logs: `docker logs shiftn-api`
-3. Verify ShiftN files were copied correctly to `shiftn-app/`
+**Container won't start:**
+- Check Docker is in Linux mode
+- Verify ShiftN files in `shiftn-app/`
+- Check logs: `docker logs container-name`
 
-### Health check fails
+**X server errors:**
+- Container automatically cleans lock files
+- Restart container if Xvfb issues persist
 
-1. Check if Node.js installed correctly in container
-2. Verify port 3000 is not already in use
-3. Check container logs for errors
+### API Issues
 
-### Image processing fails
+**Authentication errors:**
+- Verify API key in `.env` file
+- Check API key in request headers/query
 
-1. Verify input image is a supported format
-2. Check ShiftN.ini configuration
-3. Ensure image is not corrupted
-4. Check container has sufficient memory
+**Processing failures:**
+- Ensure image format is supported
+- Check file size under 50MB limit
+- Verify ShiftN.ini configuration
 
-### Output is always BMP
+### Wine Issues
 
-This is expected behavior. ShiftN outputs BMP files regardless of the input format. You can convert to other formats after processing if needed.
-
-## Performance Notes
-
-- Processing time: ~0.2-0.5 seconds per image
-- File size limit: 50MB
-- Temporary files are cleaned up automatically after 1 hour
-- Files are deleted immediately after successful processing
+**ShiftN won't run:**
+- Check Wine initialization in logs
+- Verify all DLL dependencies present
+- Test manually: `docker exec -it container wine /app/shiftn/ShiftN.exe`
 
 ## Development
 
-To run the API locally without Docker (Windows only):
+### Local Development
 
+```bash
+# Install dependencies
+cd api && npm install
 
-1. Install Node.js
-2. Navigate to `api` directory
-3. Install dependencies:
-   ```powershell
-   npm install
-   ```
-4. Set environment variable to point to ShiftN:
-   ```powershell
-   $env:SHIFTN_PATH = "C:\Program Files (x86)\ShiftN"
-   ```
-5. Run the server:
-   ```powershell
-   npm start
-   ```
+# Set environment variables
+export SHIFTN_PATH="/path/to/shiftn"
+export API_KEY="test-key"
 
-For development with auto-reload:
-```powershell
-npm run dev
+# Run server
+npm start
 ```
 
-## License
+### Debugging
 
-ShiftN is licensed under LGPL v3. See the COPYING.LESSER.txt file in the ShiftN application directory.
+```bash
+# View logs
+docker logs -f container-name
 
-This API wrapper is provided as-is for integration purposes.
+# Execute commands in container
+docker exec -it container-name bash
 
-## Credits
+# Check processes
+docker exec container-name ps aux
 
-- **ShiftN** by Marcus Hebel (http://www.shiftn.de)
-- Line detection algorithm based on work by J. Brian Burns, Allen R. Hanson, Edward M. Riseman
-- Uses libjpeg, libtiff, and zlib libraries
+# Test Wine
+docker exec container-name wine --version
+```
+
+## License and Credits
+
+- **ShiftN** by Marcus Hebel (http://www.shiftn.de) - LGPL v3
+- **Wine** compatibility layer - LGPL
+- **ImageMagick** image processing - Apache License
+- API wrapper - MIT License
 
 ## Support
 
-For issues with:
-- ShiftN functionality: Visit http://www.shiftn.de
-- This API wrapper: Open an issue in the project repository
-- Docker/deployment: Check Docker documentation
+- **ShiftN functionality**: http://www.shiftn.de
+- **Wine compatibility**: https://www.winehq.org
+- **Docker issues**: Check Docker documentation
+- **API wrapper**: Open GitHub issue
 
 ## Changelog
 
-### Version 1.0.0
-- Initial release
-- Basic REST API with single endpoint
-- Docker containerization
-- Automatic file cleanup
-- Health check endpoint
+### Version 2.0.0
+- Linux/Wine compatibility
+- API key authentication
+- ImageMagick BMP to JPEG conversion
+- Improved process management
+- X server stability fixes
+- Cost-effective deployment options

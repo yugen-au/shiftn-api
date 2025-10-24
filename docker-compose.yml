@@ -5,18 +5,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: shiftn-microservice-wine
+    container_name: shiftn-api-wine
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - SHIFTN_PATH=C:\\app\\shiftn
-    volumes:
-      # Optional: mount config if you want to customize ShiftN.ini
-      # - ./config/ShiftN.ini:C:\\app\\shiftn\\ShiftN.ini:ro
+      - SHIFTN_PATH=/app/shiftn
+      - DISPLAY=:99
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "powershell", "-Command", "Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
