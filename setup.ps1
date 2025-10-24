@@ -10,17 +10,59 @@ if (-not (Test-Path $destination)) {
     New-Item -Path $destination -ItemType Directory | Out-Null
 }
 
-# Copy all files
+# Define required files
+$requiredFiles = @(
+    "ShiftN.exe",
+    "ShiftN.ini", 
+    "mfc120.dll",
+    "mfcm120.dll",
+    "msvcp120.dll",
+    "msvcr120.dll",
+    "shiftn_english.dll",
+    "COPYING.LESSER.txt",
+    "COPYING.txt",
+    "license.txt"
+)
+
+# Copy only required files
 try {
-    Copy-Item "$source\*" -Destination $destination -Recurse -Force
-    Write-Host "Successfully copied ShiftN files!" -ForegroundColor Green
+    $copiedFiles = @()
+    $missingFiles = @()
     
-    # List copied files
+    foreach ($file in $requiredFiles) {
+        $sourcePath = Join-Path $source $file
+        if (Test-Path $sourcePath) {
+            Copy-Item $sourcePath -Destination $destination -Force
+            $copiedFiles += $file
+        } else {
+            $missingFiles += $file
+        }
+    }
+    
+    Write-Host "Successfully copied required ShiftN files" -ForegroundColor Green
+    
+    # Show copied files
     Write-Host "`nCopied files:" -ForegroundColor Cyan
-    Get-ChildItem $destination | Select-Object Name, Length | Format-Table -AutoSize
+    Get-ChildItem $destination | Where-Object { $_.Name -in $requiredFiles } | Select-Object Name, Length | Format-Table -AutoSize
     
-    Write-Host "`nReady to build Docker image!" -ForegroundColor Green
-    Write-Host "Run: docker-compose build" -ForegroundColor Yellow
+    # Warn about missing files
+    if ($missingFiles.Count -gt 0) {
+        Write-Host "Warning: Some files were not found in source:" -ForegroundColor Yellow
+        $missingFiles | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+    }
+    
+    # Verify essential files
+    $essentialFiles = @("ShiftN.exe", "ShiftN.ini")
+    $missingEssential = $essentialFiles | Where-Object { -not (Test-Path (Join-Path $destination $_)) }
+    
+    if ($missingEssential.Count -gt 0) {
+        Write-Host "`nERROR: Essential files missing" -ForegroundColor Red
+        $missingEssential | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+        exit 1
+    }
+    
+    Write-Host "`nReady to build Docker image" -ForegroundColor Green
+    Write-Host "Run: .\install.ps1" -ForegroundColor Yellow
     
 } catch {
     Write-Host "Error copying files: $_" -ForegroundColor Red

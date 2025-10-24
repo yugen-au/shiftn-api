@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShiftN Microservice Test Client</title>
+    <title>ShiftN API Test Client</title>
     <style>
         * {
             margin: 0;
@@ -79,7 +79,7 @@
             margin-bottom: 20px;
         }
         
-        select, button, input[type="password"] {
+        select, button, input[type="password"], input[type="url"] {
             padding: 12px 20px;
             border-radius: 6px;
             border: 2px solid #dee2e6;
@@ -88,17 +88,17 @@
             transition: all 0.3s;
         }
         
-        select, input[type="password"] {
+        select, input[type="password"], input[type="url"] {
             background: white;
             color: #495057;
         }
         
-        select:focus, input[type="password"]:focus {
+        select:focus, input[type="password"]:focus, input[type="url"]:focus {
             border-color: #6c757d;
             outline: none;
         }
         
-        input[type="password"]::placeholder {
+        input[type="password"]::placeholder, input[type="url"]::placeholder {
             color: #adb5bd;
         }
         
@@ -206,18 +206,22 @@
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
             <h3>Click to upload or drag and drop</h3>
-            <p>JPEG, PNG, BMP, TIFF images supported</p>
+            <p>JPEG, BMP, TIFF images supported</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
         
         <div class="controls">
-            <input type="password" id="apiKey" placeholder="API Key" style="flex: 2;">
-            <select id="correctionMode" style="flex: 1;">
+            <input type="url" id="apiUrl" placeholder="API URL" value="http://localhost:3000" style="flex: 3;">
+            <input type="password" id="apiKey" placeholder="API Key" style="flex: 3;">
+        </div>
+        
+        <div class="controls">
+            <select id="correctionMode" style="flex: 2;">
                 <option value="A1">Auto Mode 1 (Fast)</option>
                 <option value="A2" selected>Auto Mode 2 (Balanced)</option>
                 <option value="A3">Auto Mode 3 (Thorough)</option>
             </select>
-            <button id="processBtn" disabled>Process Image</button>
+            <button id="processBtn" disabled style="flex: 1;">Process Image</button>
         </div>
         
         <div id="status" class="status"></div>
@@ -230,6 +234,7 @@
         const fileInput = document.getElementById('fileInput');
         const processBtn = document.getElementById('processBtn');
         const correctionMode = document.getElementById('correctionMode');
+        const apiUrl = document.getElementById('apiUrl');
         const apiKey = document.getElementById('apiKey');
         const status = document.getElementById('status');
         const results = document.getElementById('results');
@@ -279,7 +284,14 @@
         processBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
             
+            const apiUrlValue = apiUrl.value.trim();
             const apiKeyValue = apiKey.value.trim();
+            
+            if (!apiUrlValue) {
+                showStatus('Please enter the API URL', 'error');
+                return;
+            }
+            
             if (!apiKeyValue) {
                 showStatus('Please enter your API key', 'error');
                 return;
@@ -298,7 +310,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
                 
-                const response = await fetch('http://localhost:3000/correct', {
+                const response = await fetch(`${apiUrlValue}/correct`, {
                     method: 'POST',
                     headers: {
                         'X-API-Key': apiKeyValue

@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SHIFTN_PATH = process.env.SHIFTN_PATH || '/app/shiftn';
 const SHIFTN_EXE = path.join(SHIFTN_PATH, 'ShiftN.exe');
-const IS_WINE = process.platform === 'linux'; // Detect if running on Linux
+const IS_LINUX = process.platform === 'linux'; // Detect if running on Linux
 
 // Create temp directories if they don't exist
 const UPLOAD_DIR = path.join(__dirname, 'temp', 'uploads');
@@ -100,8 +100,8 @@ async function processImage(inputPath, outputPath, option = 'A2') {
         const outputFilename = path.basename(outputPath);
         
         // Use Wine on Linux, direct execution on Windows
-        const command = IS_WINE ? 'wine' : SHIFTN_EXE;
-        const args = IS_WINE 
+        const command = IS_LINUX ? 'wine' : SHIFTN_EXE;
+        const args = IS_LINUX 
             ? [SHIFTN_EXE, inputPath, outputFilename, option]
             : [inputPath, outputFilename, option];
         
@@ -372,7 +372,7 @@ app.post('/correct', authenticate, upload.single('image'), async (req, res) => {
 
 app.get('/', (req, res) => {
     res.json({
-        service: 'ShiftN Perspective Correction Microservice',
+        service: 'ShiftN Perspective Correction API',
         version: '1.0.0',
         endpoints: {
             health: 'GET /health - Check service health',
@@ -387,7 +387,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`ShiftN Microservice listening on port ${PORT}`);
+    console.log(`ShiftN API listening on port ${PORT}`);
     console.log(`ShiftN executable: ${SHIFTN_EXE}`);
     console.log(`Exists: ${fsSync.existsSync(SHIFTN_EXE)}`);
 });

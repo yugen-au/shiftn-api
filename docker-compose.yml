@@ -5,10 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: shiftn-microservice-wine
-    container_name: shiftn-api-wine
+    image: shiftn-api
+    container_name: shiftn-api
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - SHIFTN_PATH=/app/shiftn

@@ -1,7 +1,7 @@
 {
-  "name": "shiftn-microservice",
+  "name": "shiftn-api",
   "version": "1.0.0",
-  "description": "REST API microservice for ShiftN perspective correction",
+  "description": "REST API for ShiftN perspective correction",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,7 +12,7 @@
     "perspective",
     "correction",
     "image",
-    "microservice"
+    "api"
   ],
   "author": "",
   "license": "ISC",

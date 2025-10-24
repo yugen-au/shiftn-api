@@ -1,6 +1,6 @@
-# ShiftN Perspective Correction Microservice (Wine/Linux)
+# ShiftN Perspective Correction API
 
-A REST API microservice that wraps the ShiftN perspective correction tool in a Linux Docker container using Wine for cross-platform compatibility.
+A REST API that wraps the ShiftN perspective correction tool in a Linux Docker container using Wine for cross-platform compatibility.
 
 ## Overview
 
@@ -17,25 +17,65 @@ ShiftN is a powerful Windows tool for automatic correction of converging lines i
 - Health monitoring endpoints
 - Multiple correction modes (A1, A2, A3)
 
+## Setup
+
+### Getting ShiftN
+
+ShiftN is required but not included in this repository due to licensing. Download and install from the official website:
+
+**Download:** http://www.shiftn.de
+
+### Installing ShiftN Files
+
+After installing ShiftN, copy the required files to the `shiftn-app` directory.
+
+**Option 1: Using setup script (recommended)**
+```powershell
+.\setup.ps1
+```
+
+**Option 2: Manual copy**
+```powershell
+Copy-Item "C:\Program Files (x86)\ShiftN\*" -Destination ".\shiftn-app\" -Recurse
+
+# Alternative path (if installed elsewhere)
+Copy-Item "C:\Program Files\ShiftN\*" -Destination ".\shiftn-app\" -Recurse
+```
+
+**Required files:**
+- `ShiftN.exe` - Main executable
+- `ShiftN.ini` - Configuration file
+- `mfc120.dll`, `mfcm120.dll` - MFC runtime libraries
+- `msvcp120.dll`, `msvcr120.dll` - Visual C++ runtime libraries
+- `shiftn_english.dll` - English language support
+- `COPYING.LESSER.txt`, `COPYING.txt`, `license.txt` - License files
+
+**Verification:**
+```bash
+# Check essential files exist
+ls shiftn-app/ShiftN.exe
+ls shiftn-app/ShiftN.ini
+ls shiftn-app/*.dll
+```
+
 ## Quick Start
 
 ### Prerequisites
 
 - Docker Desktop (Linux container mode)
-- ShiftN application files
+- ShiftN application files (run `setup.ps1` to copy)
 
-### 1. Environment Setup
+### Option 1: Using install script (recommended)
 
-Copy the environment template and configure your API key:
+```powershell
+.\install.ps1
+```
+
+### Option 2: Manual setup
 
 ```bash
 cp .env.example .env
 # Edit .env and set your API_KEY
-```
-
-### 2. Build and Run
-
-```bash
 docker-compose build
 docker-compose up -d
 ```
@@ -43,7 +83,10 @@ docker-compose up -d
 ### 3. Test the Service
 
 ```bash
-# Health check
+# Using test script
+.\test-api.ps1
+
+# Or manual testing
 curl http://localhost:3000/health
 
 # Process an image (with API key)
@@ -56,11 +99,15 @@ curl -H "X-API-Key: your-api-key" \
 ## Project Structure
 
 ```
-shiftn-microservice-wine/
+shiftn-api/
 ├── Dockerfile                 # Linux container with Wine
 ├── docker-compose.yml         # Service configuration
 ├── .env.example              # Environment template
 ├── .env                      # Environment variables (gitignored)
+├── setup.ps1                # Copy ShiftN files from installation
+├── install.ps1              # Build and start service
+├── test-api.ps1             # Test API endpoints
+├── test-client.html         # Interactive web test client
 ├── api/                      # Node.js API server
 │   ├── server.js            # Express server with Wine integration
 │   ├── package.json         # Dependencies
@@ -68,7 +115,8 @@ shiftn-microservice-wine/
 └── shiftn-app/              # ShiftN Windows application files
     ├── ShiftN.exe
     ├── ShiftN.ini
-    └── *.dll                # Runtime dependencies
+    ├── *.dll                # Runtime dependencies
+    └── *.txt                # License files
 ```
 
 ## API Documentation
@@ -103,7 +151,7 @@ Service information (no authentication required).
 **Response:**
 ```json
 {
-  "service": "ShiftN Perspective Correction Microservice",
+  "service": "ShiftN Perspective Correction API",
   "version": "1.0.0",
   "endpoints": {
     "health": "GET /health - Check service health",
@@ -243,7 +291,7 @@ railway up
 
 ## Performance
 
-- **Processing time**: 20-30 seconds per image
+- **Processing time**: 30-60 seconds per image on average
 - **File size limit**: 50MB
 - **Concurrent requests**: Supported with automatic process management
 - **Memory usage**: ~200MB base + ~100MB per active job
@@ -288,7 +336,7 @@ railway up
 ### API Issues
 
 **Authentication errors:**
-- Verify API key in `.env` file
+- Verify API key in `.env` file (or configured in your service provider's dashboard)
 - Check API key in request headers/query
 
 **Processing failures:**
